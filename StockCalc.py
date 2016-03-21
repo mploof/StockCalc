@@ -8,8 +8,8 @@ import os
 '''
 Quote format
 
-[0]     [1]    [2]    [3]    [4]    [5]    [6]    [7]       [8]
-Count - Day - Month - Year - Open - High - Low - Close - O/C Diff %
+[0]     [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]
+Count - Day - Month - Year - Open - High - Low - Close - Vel - Accel
 '''
 
 
@@ -20,12 +20,12 @@ Method Definitions
 def printQuotes(start, stop):
     printHeader()
     for x in range(start, stop):
-        printQuote(x, False)
+        printQuoteH(x, False)
 
 def printQuote(which):
-    printQuote(which, True)
+    printQuoteH(which, True)
 
-def printQuote(which, header):
+def printQuoteH(which, header):
     if header is True:
         printHeader()
     i = 0
@@ -39,7 +39,7 @@ def printQuote(which, header):
     print("")
 
 def printHeader():
-    print("\nCount\tDay\tMonth\tYear\tOpen\tHigh\tLow\tClose\tO/C %\tVel\tAccel")
+    print("\nCount\tDay\tMonth\tYear\tOpen\tHigh\tLow\tClose\tVel\tAccel")
 
 def sumCol(col):
     total = 0
@@ -73,8 +73,11 @@ for x in strings:
         thisQuote.append(float(splitOutput[y]))
     quotes.append(thisQuote)
 
+
+
 '''
 Add open / close price pct differential
+'''
 '''
 i = 0
 for x in quotes:
@@ -85,6 +88,7 @@ for x in quotes:
         #val = int((val * 100) + 0.5) / 100.0
         x.append(openCloseDiff)
     i += 1
+'''
 
 '''
 Add price velocity and accel
@@ -108,36 +112,51 @@ for x in quotes:
         x.append(accel)
     i += 1
 
-#printQuotes(0, 1000)
+printQuotes(0, 50)
 
 print("")
-print("Days: " + str(len(quotes)))
-print("Sum: " + str(sumCol(8)))
-print("Ave: " + str(aveCol(8)))
 
+def printDate(quote):
+    print("\nDay: " + str(quote[0]) + " " + str(quote[1]) + "-" + str(quote[2]) + "-" + str(quote[3]))
 
 '''
-up = np.empty([0])
-down = np.empty([0])
-count = 0
-lastVal = 0
-iterator = 0
-for x in vals:
-    if(iterator != 0):
-        if x < 0 and lastVal >= 0:
-            up = np.append(up, [count])
-            count = 0
-        elif x >= 0 and lastVal < 0:
-            down = np.append(down, [count])
-            count = 0
-        count += 1
-    lastVal = x
-    iterator += 1
-
-print str(up) + "\n"
-print str(down) + "\n"
-print "Up average: " + str(np.average(up))
-print "Up stdev: " + str(np.std(up)) + "\n"
-print "Down average: " + str(np.average(down))
-print "Down stdev: " + str(np.std(down))
+Make Investments
 '''
+
+class investor():
+
+    def __init__(self):
+        self.buyPrice = 0
+        self.cash = 1000
+        self.invested = False
+
+    def buy(self, quote):
+        printDate(quote)
+        print("Buying at $" + str(quote[7]))
+        self.buyPrice = quote[7]
+        self.invested = True
+
+    def sell(self, quote):
+        printDate(quote)
+        print("Selling at $" + str(quote[7]))
+        sellPrice = quote[7]
+        payoff = sellPrice / self.buyPrice
+        print("Payoff = " + str(payoff))
+        self.cash *= payoff
+        self.invested = False
+
+    def simulate(self, quotes):
+        for x in reversed(quotes):
+            # Buy when velocity is positive, sell when it first becomes negative
+            #print("Invested? " + str(invested))
+            if x[9] > 0 and not self.invested:
+                self.buy(x)
+            elif x[9] < 0 and self.invested:
+                self.sell(x)
+            else:
+                continue
+
+        print("\nFinal cash: $" + str(self.cash))
+
+me = investor()
+me.simulate(quotes)
