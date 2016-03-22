@@ -4,6 +4,10 @@ import numpy as np
 import re
 import os
 
+'''
+Location of historical data
+http://finance.yahoo.com/q/hp?a=02&b=22&c=2013&d=02&e=22&f=2016&g=d&s=FEYE%2C+&ql=1
+'''
 
 '''
 Quote format
