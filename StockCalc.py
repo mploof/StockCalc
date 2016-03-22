@@ -171,14 +171,20 @@ class Sim():
 
     def simulate(self):
         i = 0
+        readyToBuy = False
         for x in reversed(self.quotes):
             if i == 0:
                 self.startPrice = x[ADJCLOSE]
             # Buy when velocity is positive, sell when it first becomes negative
             if x[ACCEL] > 0 and not self.invested:
-                self.buy(x)
+                #if readyToBuy:
+                    self.buy(x)
+                #readyToBuy = True
             elif x[ACCEL] < 0 and self.invested:
                 self.sell(x)
+                readyToBuy = False
+            else:
+                readyToBuy = False
             if i == len(self.quotes)-1:
                 self.passiveReturn = x[ADJCLOSE] / self.startPrice * Sim.defaultCash
             i += 1
@@ -194,8 +200,7 @@ class Sim():
         print("Passive Return: $ " + str(self.passiveReturn))
         print("\n")
 
-symbols = ["amzn", "aapl", "goog", "tsla"]
-
+symbols = ["feye", "amzn", "aapl", "goog", "tsla", "agnc", "ugaz", "dgaz"]
 managedCash = 0
 passiveCash = 0
 for sym in symbols:
