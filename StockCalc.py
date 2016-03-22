@@ -8,29 +8,39 @@ import os
 '''
 Quote format
 
-[0]     [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]
-Count - Day - Month - Year - Open - High - Low - Close - Vel - Accel
+[0]     [1]    [2]    [3]    [4]    [5]     [6]         [7]     [8]
+Date    Open   High   Low    Close  Volume  Adj Close   Vel     Accel
 '''
+
+DATE = 0
+OPEN = 1
+HIGH = 2
+LOW = 3
+CLOSE = 4
+VOL = 5
+ADJCLOSE = 6
+VEL = 7
+ACCEL = 8
 
 
 '''
 Method Definitions
 '''
 
-def printQuotes(start, stop):
+def printQuotes(qList, start, stop):
     printHeader()
     for x in range(start, stop):
-        printQuoteH(x, False)
+        printQuoteH(qList, x, False)
 
-def printQuote(which):
-    printQuoteH(which, True)
+def printQuote(qList, which):
+    printQuoteH(qList, which, True)
 
-def printQuoteH(which, header):
+def printQuoteH(qList, which, header):
     if header is True:
         printHeader()
     i = 0
-    for x in quotes[which]:
-        if i < 4:
+    for x in qList[which]:
+        if i == 0:
             print(x, end="")
         else:
             print("%.2f" % x, end="")
@@ -39,7 +49,7 @@ def printQuoteH(which, header):
     print("")
 
 def printHeader():
-    print("\nCount\tDay\tMonth\tYear\tOpen\tHigh\tLow\tClose\tVel\tAccel")
+    print("\nDate\t\tOpen\tHigh\tLow\tClose\tVol\t\tAdj C\tVel\tAccel")
 
 def sumCol(col):
     total = 0
@@ -49,30 +59,6 @@ def sumCol(col):
 
 def aveCol(col):
     return sumCol(col) / len(quotes)
-
-
-'''
-Linear Execution
-'''
-
-
-'''
-Read the quote data and create an array of floats from it
-'''
-path = os.path.dirname(os.path.realpath(__file__));
-with open(path + "\data.txt") as f:
-    strings = f.read().splitlines()
-
-quotes = []
-for x in strings:
-    thisQuote = []
-    splitOutput = re.split(r'\t+',x)
-    for y in range(0, 4):
-        thisQuote.append(int(splitOutput[y]))
-    for y in range(4, len(splitOutput)):
-        thisQuote.append(float(splitOutput[y]))
-    quotes.append(thisQuote)
-
 
 
 '''
@@ -90,73 +76,133 @@ for x in quotes:
     i += 1
 '''
 
-'''
-Add price velocity and accel
-'''
-aveDays = 7
-i = 0
-for x in quotes:
-    if(i >= len(quotes)-(1+aveDays)):
-        x.append(0)
-    else:
-        vel = (x[7] - quotes[i+aveDays][7]) / quotes[i+1][7]
-        x.append(vel)
-    i += 1
-
-i = 0
-for x in quotes:
-    if(i >= len(quotes)-(1+aveDays)):
-        x.append(0)
-    else:
-        accel = x[8] - quotes[i+aveDays][8]
-        x.append(accel)
-    i += 1
-
-printQuotes(0, 50)
-
-print("")
-
 def printDate(quote):
-    print("\nDay: " + str(quote[0]) + " " + str(quote[1]) + "-" + str(quote[2]) + "-" + str(quote[3]))
+    print("\nDate: " + str(quote[0]))
 
 '''
 Make Investments
 '''
 
-class investor():
+class Sim():
 
-    def __init__(self):
+    count = 0
+
+    def __init__(self, symbol, aveDays):
+        Sim.defaultCash = 1000
+        self.symbol = symbol
+        self.aveDays = aveDays
+        self.quotes = []
+        self.initializeQuotes()
         self.buyPrice = 0
-        self.cash = 1000
+        self.cash = Sim.defaultCash
+        self.minCash = self.cash
+        self.maxCash = self.cash
         self.invested = False
+        self.startPrice = 0
+        self.endPrice = 0
+        self.passiveReturn = 0
+        self.velAccel()
+
+    def initializeQuotes(self):
+        '''
+        Read the quote data and create an array of floats from it
+        '''
+        path = os.path.dirname(os.path.realpath(__file__));
+        with open(path + "/" + self.symbol + ".csv") as f:
+            strings = f.read().splitlines()
+
+        for i in range(1, len(strings)):
+            x = strings[i]
+            thisQuote = []
+            # Split using tabs, spaces, or commas as delimiters
+            splitOutput = x.split(",")
+            # Add the date
+            thisQuote.append(splitOutput[0])
+            # Add the prices
+            for y in range(1, len(splitOutput)):
+                thisQuote.append(float(splitOutput[y]))
+            # Add this quote to the quote list
+            self.quotes.append(thisQuote)
+
+        #print(str(len(self.quotes)) + " days of data collected")
+
+    def velAccel(self):
+        '''
+        Add price velocity and accel
+        '''
+
+        i = 0
+        for x in self.quotes:
+            if(i >= len(self.quotes)-(1+self.aveDays)):
+                x.append(0)
+            else:
+                vel = (x[ADJCLOSE] - self.quotes[i+self.aveDays][ADJCLOSE]) / self.quotes[i+1][ADJCLOSE]
+                x.append(vel)
+            i += 1
+
+        i = 0
+        for x in self.quotes:
+            if(i >= len(self.quotes)-(1+self.aveDays)):
+                x.append(0)
+            else:
+                accel = x[VEL] - self.quotes[i+self.aveDays][VEL]
+                x.append(accel)
+            i += 1
 
     def buy(self, quote):
-        printDate(quote)
-        print("Buying at $" + str(quote[7]))
-        self.buyPrice = quote[7]
+        #printDate(quote)
+        #print("Buying at $" + str(quote[ADJCLOSE]))
+        self.buyPrice = quote[ADJCLOSE]
         self.invested = True
 
     def sell(self, quote):
-        printDate(quote)
-        print("Selling at $" + str(quote[7]))
-        sellPrice = quote[7]
+        #printDate(quote)
+        #print("Selling at $" + str(quote[ADJCLOSE]))
+        sellPrice = quote[ADJCLOSE]
         payoff = sellPrice / self.buyPrice
-        print("Payoff = " + str(payoff))
+        #print("Payoff = " + str(payoff))
         self.cash *= payoff
         self.invested = False
+        if self.cash < self.minCash:
+            self.minCash = self.cash
+        elif self.cash > self.maxCash:
+            self.maxCash = self.cash
+        #print("Current cash: $" + str(self.cash))
 
-    def simulate(self, quotes):
-        for x in reversed(quotes):
+    def simulate(self):
+        i = 0
+        for x in reversed(self.quotes):
+            if i == 0:
+                self.startPrice = x[ADJCLOSE]
             # Buy when velocity is positive, sell when it first becomes negative
-            #print("Invested? " + str(invested))
-            if x[9] > 0 and not self.invested:
+            if x[ACCEL] > 0 and not self.invested:
                 self.buy(x)
-            elif x[9] < 0 and self.invested:
+            elif x[ACCEL] < 0 and self.invested:
                 self.sell(x)
-            else:
-                continue
+            if i == len(self.quotes)-1:
+                self.passiveReturn = x[ADJCLOSE] / self.startPrice * Sim.defaultCash
+            i += 1
 
-        print("\nFinal cash: $" + str(self.cash))
+        Sim.count += 1
 
-me = investor()
-me.simulate(quotes)
+        print("**** Simulation " + str(Sim.count) + " ****\n")
+        print("Stock symbol: " + self.symbol)
+        print("Averaging days: " + str(self.aveDays))
+        print("Final cash: $" + str(self.cash))
+        print("Max cash: $" + str(self.maxCash))
+        print("Min cash: $" + str(self.minCash))
+        print("Passive Return: $ " + str(self.passiveReturn))
+        print("\n")
+
+symbols = ["amzn", "aapl", "goog", "tsla"]
+
+managedCash = 0
+passiveCash = 0
+for sym in symbols:
+    test = Sim(sym, 8)
+    test.simulate()
+    managedCash += test.cash
+    passiveCash += test.passiveReturn
+
+print("Managed total: $ " + str(managedCash))
+print("Passive total: $ " + str(passiveCash))
